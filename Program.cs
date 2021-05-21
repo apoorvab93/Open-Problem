@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 class Solution
 {
-
     /*
      * Complete the function below.
      */
@@ -12,6 +10,7 @@ class Solution
     const string DEPEND = "DEPEND";
     const string INSTALL = "INSTALL";
     const string REMOVE = "REMOVE";
+    const string END = "END";
 
     static void doIt(string[] input)
     {
@@ -42,6 +41,9 @@ class Solution
                     break;
                 case REMOVE:
                     HandleRemoveCommand(subStrings, graph, inverseGraph, installedComponents);
+                    break;
+                case END:
+                    Console.WriteLine(END);
                     break;
             }
         }
@@ -77,7 +79,6 @@ class Solution
         var formattedRequirements = string.Join(" ", requirements);
         Console.WriteLine($"{DEPEND} {component} {formattedRequirements}");
 
-        //TODO: Add check for cycle
         bool isCausingCyle = doesCycleExist(component, requirements, graph, inverseGraph);
         if (!isCausingCyle)
         {
@@ -114,7 +115,7 @@ class Solution
                 var requirements = graph[currentComponent];
                 foreach (var requirement in requirements)
                 {
-                    if (!installedSet.Contains(requirement)) // NOT installed yet
+                    if (!installedSet.Contains(requirement))
                     {
                         queue.Enqueue(requirement);
                     }
@@ -125,8 +126,11 @@ class Solution
         while (stack.Any())
         {
             var current = stack.Pop();
-            Console.WriteLine($"Installing {current}");
-            installedSet.Add(current);
+            if(!installedSet.Contains(current))
+            {
+                Console.WriteLine($"Installing {current}");
+                installedSet.Add(current);
+            }            
         }
     }
 
@@ -161,14 +165,15 @@ class Solution
         while (stack.Any())
         {
             var current = stack.Pop();
-            canRemove = canBeRemoved(current, inverseGraph, installedSet);
+            canRemove = canBeRemoved(current, inverseGraph, installedSet, itemsRemovable);
             if (canRemove)
             {
                 itemsRemovable.Add(current);
             }
             else
             {
-                break;
+                continue;
+                //No need to check its dependencies
             }            
 
             if (graph.ContainsKey(current))
@@ -184,43 +189,38 @@ class Solution
             }
         }
 
-        if(!canRemove)
+        if(itemsRemovable.Contains(component))
         {
-            Console.WriteLine($"{component} is still Needed");
-            return;
-        }
-
-        foreach(var item in itemsRemovable)
-        {
+            foreach (var item in itemsRemovable)
+            {
                 Console.WriteLine($"Removing {item}");
+                installedSet.Remove(item);
+            }
         }
-
-
-
+        else
+        {
+            Console.WriteLine($"{component} is still needed");
+        }
     }
 
     static bool canBeRemoved(
         string current,
         Dictionary<string, HashSet<string>> inverseGraph,
-        HashSet<string> installedSet)
+        HashSet<string> installedSet,
+        HashSet<string> itemsRemovable)
     {
-        if (!inverseGraph.ContainsKey(current))
-        {
-            //Nothing relies on current, so it can be removed
-            return true;
-        }
-        else
+        if (inverseGraph.ContainsKey(current))
         {
             //Some components rely on current, check if these are installed
             var dependent = inverseGraph[current];
             foreach (var req in dependent)
             {
-                if (installedSet.Contains(req))
+                if (installedSet.Contains(req) && !itemsRemovable.Contains(req)) 
+                // The item is installed and not eligible for removal
                 {
                     return false;
                 }
             }
-
         }
 
         return true;
@@ -238,7 +238,7 @@ class Solution
         {
             stack.Push(requirement);
         }
-        var allRequirements = new HashSet<string>(); // Collect all requirements, including transitive ones
+        var allRequirements = new HashSet<string>();
         while (stack.Any())
         {
             var current = stack.Pop();
@@ -274,29 +274,30 @@ class Solution
 
     static void Main(String[] args)
     {
-
-        var list = new List<string> {"DEPEND TELNET TCPIP NETCARD",
-"DEPEND TCPIP NETCARD",
-"DEPEND NETCARD TCPIP",
-"DEPEND DNS TCPIP NETCARD",
-"DEPEND BROWSER TCPIP HTML",
-"INSTALL NETCARD",
-"INSTALL TELNET",
-"INSTALL foo",
-"REMOVE NETCARD",
-"INSTALL BROWSER",
-"INSTALL DNS",
-"LIST",
-"REMOVE TELNET",
-"REMOVE NETCARD",
-"REMOVE DNS",
-"REMOVE NETCARD",
-"INSTALL NETCARD",
-"REMOVE TCPIP",
-"REMOVE BROWSER",
-"REMOVE TCPIP",
-"LIST",
-"END"};
+        var list = new List<string> {
+            "DEPEND TELNET TCPIP NETCARD",
+            "DEPEND TCPIP NETCARD",
+            "DEPEND NETCARD TCPIP",
+            "DEPEND DNS TCPIP NETCARD",
+            "DEPEND BROWSER TCPIP HTML",
+            "INSTALL NETCARD",
+            "INSTALL TELNET",
+            "INSTALL foo",
+            "REMOVE NETCARD",
+            "INSTALL BROWSER",
+            "INSTALL DNS",
+            "LIST",
+            "REMOVE TELNET",
+            "REMOVE NETCARD",
+            "REMOVE DNS",
+            "REMOVE NETCARD",
+            "INSTALL NETCARD",
+            "REMOVE TCPIP",
+            "REMOVE BROWSER",
+            "REMOVE TCPIP",
+            "LIST",
+            "END"
+        };
         doIt(list.ToArray());
 
     }
