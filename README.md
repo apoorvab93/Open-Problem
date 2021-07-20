@@ -1,5 +1,5 @@
-# interview
-Solution to an interview problem
+# Open problem
+Solution to an Open LC problem
 
 Consider INPUT -
 DEPEND TELNET TCPIP NETCARD
